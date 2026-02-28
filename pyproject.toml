@@ -1,2 +1,9 @@
-from setuptools import setup, find_packages
-setup(name="robustness-metrics", packages=find_packages())
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "robustness-metrics"
+
+[tool.setuptools.packages.find]
+where = ["."]
