@@ -1,5 +1,5 @@
 import networkx as nx
-from metrics.network_partition import calculate_cheeger_costant
+import metrics.network_partition as network_partition
 
 def calculate_metrics(G, graph_name):
     metrics = {}
@@ -7,7 +7,7 @@ def calculate_metrics(G, graph_name):
     print(f"{graph_name}, transitivity: {metrics['transitivity']}")
     metrics['average_clustering']   = nx.average_clustering(G)
     print(f"{graph_name}, average_clustering: {metrics['average_clustering']}")
-    metrics['cheeger constant'], _  = calculate_cheeger_costant(G, 0.45, 3)
+    metrics['cheeger constant'], _  = network_partition.compute(G)
     print(f"{graph_name}, cheeger: {metrics['cheeger constant']}")
 
     return metrics
