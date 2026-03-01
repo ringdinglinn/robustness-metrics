@@ -5,7 +5,7 @@ def calculate_metrics(G):
     metrics = {}
     metrics['transitivity']         = nx.transitivity(G)
     metrics['average_clustering']   = nx.average_clustering(G)
-    metrics['cheeger constant']     = network_partition.compute(G)
+    metrics['cheeger_constant']     = network_partition.compute(G)
 
     return metrics
 

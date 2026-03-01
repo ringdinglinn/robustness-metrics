@@ -49,9 +49,9 @@ def compute(G):
     e_vals = np.array([p[0] for p in pairs])
     e_vecs = np.column_stack([p[1] for p in pairs])
     print(e_vals)
-    metrics["natural connectivity"] = natural_connectivity(G, e_vals)
-    metrics["spectral gap"] = spectral_gap(e_vals)
-    metrics["spectral radius"] = spectral_radius(e_vals)
+    metrics["natural_connectivity"] = natural_connectivity(G, e_vals)
+    metrics["spectral_gap"] = spectral_gap(e_vals)
+    metrics["spectral_radius"] = spectral_radius(e_vals)
     # metrics["spectral scaling"] = spectral_scaling(e_vals, e_vecs)
 
     L = sparse.coo_matrix(nx.laplacian_matrix(G))
@@ -61,11 +61,11 @@ def compute(G):
     print(e_)
     rg, min_rg, max_rg, n_rg = effective_resistance(e_, G.number_of_nodes())
 
-    metrics["effective graph resistance"] = rg
-    metrics["min effective graph resistance"] = min_rg
-    metrics["max effective graph resistance"] = max_rg
-    metrics["normalized effective graph resistance"] = n_rg
+    metrics["effective_graph_resistance"] = rg
+    metrics["min_effective_graph_resistance"] = min_rg
+    metrics["max_effective_graph_resistance"] = max_rg
+    metrics["normalized_effective_graph_resistance"] = n_rg
     
-    metrics["algebaric connectivity"] = e_[1]
+    metrics["algebraic_connectivity"] = e_[1]
 
     return metrics
