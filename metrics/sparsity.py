@@ -27,5 +27,5 @@ def compute(G):
         cur_cheeger = len(S) / min(len(A), len(B))
         cheeger = min(cur_cheeger, cheeger)
 
-    return {"sparsity": q_min, "cheeger" : cheeger}
+    return {"sparsity": q_min, "cheeger_raw" : cheeger}
 

@@ -12,7 +12,7 @@ def degree_entropy(G):
     entropy = -np.sum(probs * np.log2(probs))
     return entropy
 
-def calculate_metrics(G, graph_name):
+def calculate_metrics(G):
     metrics = {}
     metrics['|V|'] = G.number_of_nodes()
     metrics['|E|'] = G.number_of_edges()
@@ -21,8 +21,6 @@ def calculate_metrics(G, graph_name):
     metrics['degree_std'] = degree_std(G)
     metrics['degree_entropy'] = degree_entropy(G)
     metrics['assortativity'] = nx.degree_assortativity_coefficient(G)
-
-    print(f"Calculated basic metrics for {graph_name}:\n{metrics}")
 
     return metrics
 
