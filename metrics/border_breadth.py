@@ -1,9 +1,5 @@
 import os
-import re
 import argparse
-import networkx as nx
-
-from metrics.network_partition import calculate_cheeger_costant
 
 def parse_args():
     parser = argparse.ArgumentParser(
