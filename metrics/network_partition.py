@@ -248,4 +248,4 @@ def compute(G):
             results_r[str(r)] = {"cheeger": cheeger(c, a, b), "c": c, "a": a, "b": b}
         print(f"r={r}: {elapsed:.2f}s")
 
-    return min(results_r.values())
+    return min([r["cheeger"] for r in results_r.values()])
