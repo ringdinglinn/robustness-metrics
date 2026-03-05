@@ -3,20 +3,25 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import networkx as nx
 import numpy as np
+import colorsys
 
 def get_node_colors(G):
-    # Assign a base color per ISD
     isds = sorted(set(data["isd_n"] for _, data in G.nodes(data=True)))
-    cmap = cm.get_cmap("tab10", len(isds))
-    isd_to_color = {isd: cmap(i) for i, isd in enumerate(isds)}
+    
+    # Spread hues evenly around the color wheel
+    hues = [i / len(isds) for i in range(len(isds))]
+    isd_to_hue = {isd: hue for isd, hue in zip(isds, hues)}
 
     colors = []
     for _, data in G.nodes(data=True):
-        base_color = np.array(isd_to_color[data["isd_n"]])
-        # Darken core nodes by scaling RGB down
+        hue = isd_to_hue[data["isd_n"]]
         if data.get("is_core"):
-            base_color[:3] *= 0.6
-        colors.append(base_color)
+            # Core: more saturated, darker
+            r, g, b = colorsys.hsv_to_rgb(hue, 0.9, 0.6)
+        else:
+            # Non-core: lighter, less saturated
+            r, g, b = colorsys.hsv_to_rgb(hue, 0.4, 0.95)
+        colors.append((r, g, b))
     return colors
 
 def plot_graphs(groups, graphs, output_dir, sort_by=None):
