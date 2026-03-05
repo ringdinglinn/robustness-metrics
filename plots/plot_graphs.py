@@ -17,10 +17,10 @@ def get_node_colors(G):
         hue = isd_to_hue[data["isd_n"]]
         if data.get("is_core"):
             # Core: more saturated, darker
-            r, g, b = colorsys.hsv_to_rgb(hue, 0.9, 0.6)
+            r, g, b = colorsys.hsv_to_rgb(hue, 0.6, 0.6)
         else:
             # Non-core: lighter, less saturated
-            r, g, b = colorsys.hsv_to_rgb(hue, 0.4, 0.95)
+            r, g, b = colorsys.hsv_to_rgb(hue, 0.2, 0.95)
         colors.append((r, g, b))
     return colors
 
