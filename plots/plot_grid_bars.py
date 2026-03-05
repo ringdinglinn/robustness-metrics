@@ -52,6 +52,6 @@ def plot_metric(metric, groups, output_dir, sort_by):
     os.makedirs(output_dir, exist_ok=True)
     safe_name = metric.replace(" ", "_").replace("|", "").replace("/", "_")
     out_path = os.path.join(output_dir, f"{safe_name}.png")
-    plt.savefig(out_path, dpi=150)
+    plt.savefig(out_path, dpi=300)
     plt.close()
     print(f"Saved: {out_path}")

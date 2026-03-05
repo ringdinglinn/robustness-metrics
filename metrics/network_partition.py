@@ -10,14 +10,11 @@ Run:
 
 Outputs a JSON file at ../results/cheeger_2.json (create directory if needed).
 """
-import sys
 import math
 import json
 import networkx as nx
 import torch
 import numpy as np
-from scipy import sparse as sp
-import os
 import time
 
 # --- Utilities ----------------------------------------------------------------
