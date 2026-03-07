@@ -126,6 +126,7 @@ def partition_pass(G, r):
 
     # initial random partition: choose k nodes for A (assignment -1), rest 1
     k = round(n * r)
+    k = max(1, k)
     perm = torch.randperm(n)
     A_idx = perm[:k]
 
@@ -232,7 +233,7 @@ class TorchJSONEncoder(json.JSONEncoder):
 # --- main --------------------------------------------------------------------
 
 def compute(G):
-    r_s = [0.15, 0.25, 0.35, 0.45]
+    r_s = [0.05, 0.15, 0.25, 0.35, 0.45]
     results_r = {}
     for r in r_s:
         start = time.time()
