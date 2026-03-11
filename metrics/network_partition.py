@@ -103,7 +103,20 @@ def create_cut(cut_data, assignment):
 
 # --- Algorithm ---------------------------------------------------------------
 
-def partition_pass(G, r):
+def initial_partition(n, r, iteration):
+    torch.manual_seed(iteration)
+    perm = torch.arange(n)[torch.randperm(n)]
+    r = min(1 - r, r)
+    k = max(1, round(n * r))
+    offset = (iteration * k) % n
+    indices = torch.cat([perm[offset:], perm[:offset]])
+    A_idx = indices[:k]
+    assignment = torch.ones(n, dtype=torch.int32)
+    assignment[A_idx] = -1
+    return assignment
+
+
+def partition_pass(G, r, iteration=0):
     """
     One pass of the partition improvement heuristic, implemented with PyTorch tensors.
     Returns tuple (min_cuts, |A|, |B|) found during this pass (same semantics as original).
@@ -125,13 +138,7 @@ def partition_pass(G, r):
     adj_data = torch.tensor(adj_sp.data, dtype=torch.float32)
 
     # initial random partition: choose k nodes for A (assignment -1), rest 1
-    k = round(n * r)
-    k = max(1, k)
-    perm = torch.randperm(n)
-    A_idx = perm[:k]
-
-    assignment = torch.ones(n, dtype=torch.int32)
-    assignment[A_idx] = -1
+    assignment = initial_partition(n, r, iteration)
 
     moveable = torch.ones(n, dtype=torch.bool)
 
@@ -202,7 +209,7 @@ def run_passes(G, r, n_passes):
     min_partition = None
 
     for i in range(n_passes):
-        res = partition_pass(G, r)
+        res = partition_pass(G, r, i)
         if res is None:
             print(f"pass {i}: no improving moves (empty or trivial partition).")
             continue
