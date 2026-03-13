@@ -63,6 +63,7 @@ def plot_metric(metric, groups, output_dir, sort_by=None):
         ax.set_xticklabels(x_labels, rotation=45, ha="right", fontsize=8)
         ax.set_title(group_name)
         ax.set_ylabel(metric)
+        ax.set_ylim(bottom=0)
 
     for j in range(i + 1, len(axes)):
         axes[j].axis("off")
