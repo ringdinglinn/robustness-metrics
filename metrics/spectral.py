@@ -43,28 +43,28 @@ def compute(G):
     metrics = {}
     A = sparse.coo_matrix(nx.adjacency_matrix(G))
     n = A.shape[0]
-    e_vals, e_vecs = sparse.linalg.eigsh(A, k=min(n-1, 10), which='LA')
+    e_vals, e_vecs = sparse.linalg.eigsh(A, k=min(n-1, 2), which='LA')
     pairs = list(zip(e_vals, e_vecs.T))
     pairs.sort(key=lambda x: x[0], reverse=True)
     e_vals = np.array([p[0] for p in pairs])
     e_vecs = np.column_stack([p[1] for p in pairs])
     print(e_vals)
-    metrics["natural_connectivity"] = natural_connectivity(G, e_vals)
+    # metrics["natural_connectivity"] = natural_connectivity(G, e_vals)
     metrics["spectral_gap"] = spectral_gap(e_vals)
     metrics["spectral_radius"] = spectral_radius(e_vals)
     # metrics["spectral scaling"] = spectral_scaling(e_vals, e_vecs)
 
     L = sparse.coo_matrix(nx.laplacian_matrix(G))
-    k = min(n-1, 10)
+    k = min(n-1, 2)
     e_, _ = sparse.linalg.eigsh(L, k=k, which='SM')
     e_ = np.sort(e_)
     print(e_)
     rg, min_rg, max_rg, n_rg = effective_resistance(e_, G.number_of_nodes())
 
-    metrics["effective_graph_resistance"] = rg
-    metrics["min_effective_graph_resistance"] = min_rg
-    metrics["max_effective_graph_resistance"] = max_rg
-    metrics["normalized_effective_graph_resistance"] = n_rg
+    # metrics["effective_graph_resistance"] = rg
+    # metrics["min_effective_graph_resistance"] = min_rg
+    # metrics["max_effective_graph_resistance"] = max_rg
+    # metrics["normalized_effective_graph_resistance"] = n_rg
     
     metrics["algebraic_connectivity"] = e_[1]
 
