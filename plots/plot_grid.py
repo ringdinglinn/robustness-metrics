@@ -1,7 +1,6 @@
 import os
 import matplotlib.pyplot as plt
 
-
 def plot_metric(metric, groups, output_dir, sort_by=None):
     group_names = sorted(groups.keys())
 
@@ -14,6 +13,16 @@ def plot_metric(metric, groups, output_dir, sort_by=None):
 
     fig.suptitle(metric, fontsize=14, fontweight="bold")
 
+    all_subgroups = set()
+    for subdict in groups.values():
+        all_subgroups.update(subdict.keys())
+    all_subgroups = sorted(all_subgroups)
+
+    cmap = plt.get_cmap("tab10")
+    color_map = {name: cmap(i % 10) for i, name in enumerate(all_subgroups)}
+
+    handles, labels = [], []
+
     for i, group_name in enumerate(group_names):
         ax = axes[i]
 
@@ -24,45 +33,48 @@ def plot_metric(metric, groups, output_dir, sort_by=None):
             if sort_by:
                 rows = sorted(rows, key=lambda r: r.get(sort_by, ""))
 
+            # Only keep rows with valid metric values
+            valid_rows = [r for r in rows if r.get(metric)]
+            if not valid_rows:
+                continue
+
             x_labels = [
                 os.path.basename(r["topology"]).replace(".yaml", "")
-                for r in rows
+                for r in valid_rows
             ]
-
-            try:
-                y_values = [float(r[metric]) for r in rows]
-            except (KeyError, ValueError):
-                continue
+            y_values = [float(r[metric]) for r in valid_rows]
 
             x = range(len(y_values))
 
-            ax.plot(
+            line, = ax.plot(
                 x,
                 y_values,
                 marker="o",
+                color=color_map[sub_name],
                 label=sub_name
             )
+
+            # Only add one handle per subgroup
+            if sub_name not in labels:
+                handles.append(line)
+                labels.append(sub_name)
 
         ax.set_xticks(range(len(x_labels)))
         ax.set_xticklabels(x_labels, rotation=45, ha="right", fontsize=8)
         ax.set_title(group_name)
         ax.set_ylabel(metric)
 
-        if len(subgroups) > 1:
-            ax.legend()
-
-    # Hide unused subplots
     for j in range(i + 1, len(axes)):
         axes[j].axis("off")
 
-    plt.tight_layout()
+    if handles:
+        fig.legend(handles, labels, loc='upper center', ncol=min(len(labels), 5))
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])  # leave space for legend on top
 
     os.makedirs(output_dir, exist_ok=True)
-
     safe_name = metric.replace(" ", "_").replace("|", "").replace("/", "_")
     out_path = os.path.join(output_dir, f"{safe_name}.png")
-
     plt.savefig(out_path, dpi=300)
     plt.close()
-
     print(f"Saved: {out_path}")
