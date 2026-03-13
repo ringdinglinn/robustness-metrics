@@ -63,15 +63,15 @@ def plot_metric(metric, groups, output_dir, sort_by=None):
         ax.set_xticklabels(x_labels, rotation=45, ha="right", fontsize=8)
         ax.set_title(group_name)
         ax.set_ylabel(metric)
-        ax.set_ylim(bottom=0)
+        ax.set_ylim(bottom=0, top=max(y_values) * 1.15)
 
     for j in range(i + 1, len(axes)):
         axes[j].axis("off")
 
     if handles:
-        fig.legend(handles, labels, loc='upper center', ncol=min(len(labels), 5))
+        fig.legend(handles, labels, loc='lower center', ncol=min(len(labels), 5))
 
-    plt.tight_layout(rect=[0, 0, 1, 0.95])  # leave space for legend on top
+    plt.tight_layout(rect=[0, 0.05, 1, 1])
 
     os.makedirs(output_dir, exist_ok=True)
     safe_name = metric.replace(" ", "_").replace("|", "").replace("/", "_")
