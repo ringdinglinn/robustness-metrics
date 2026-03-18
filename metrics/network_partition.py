@@ -244,7 +244,7 @@ def compute(G):
     results_r = {}
     for r in r_s:
         start = time.time()
-        res = run_passes(G, r, 5)
+        res = run_passes(G, r, 10)
         elapsed = time.time() - start
         if res is None:
             results_r[str(r)] = None
