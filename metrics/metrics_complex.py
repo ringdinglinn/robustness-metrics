@@ -12,6 +12,6 @@ def calculate_metrics(G, r_s=None):
 
     return metrics
 
-def compute(G):
-    metrics = calculate_metrics(G)
+def compute(G, r_s=None):
+    metrics = calculate_metrics(G, r_s)
     return metrics
