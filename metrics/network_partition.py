@@ -195,7 +195,7 @@ class TorchJSONEncoder(json.JSONEncoder):
 
 # --- main --------------------------------------------------------------------
 
-def calculate_cheeger_constant(G, r_s, passes):
+def compute_r(G, r_s, passes):
     results_r = {}
     for r in r_s:
         start = time.time()
@@ -213,4 +213,4 @@ def calculate_cheeger_constant(G, r_s, passes):
 def compute(G):
     r_s = [0.05, 0.15, 0.25, 0.35, 0.45]
     passes = 10
-    return calculate_cheeger_constant(G, r_s, passes)
+    return compute_r(G, r_s, passes)
