@@ -43,7 +43,10 @@ def compute(G):
         border_breadth = compute_border_breadth(total_core.edges, set(total_core.nodes), set(get_nodes_in_isd(G, isd)))
         results[isd] = border_breadth
 
-    return { "border_breadth" : results }
+    avg_bb = sum(results.values()) / len(results)
+
+    return { "border_breadth" : results, "border_breadth_avg" : avg_bb }
+
 
 def save_results(results, output_path):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

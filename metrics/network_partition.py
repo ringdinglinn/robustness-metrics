@@ -21,19 +21,6 @@ import time
 
 MIN_PART_SIZE = 1
 
-def build_sparse_coo_from_nx(G):
-    """
-    Build COO arrays (row_idx, col_idx, data, shape) from a networkx Graph.
-    Returns torch.LongTensor(row_idx), torch.LongTensor(col_idx), torch.FloatTensor(data), shape.
-    The adjacency is returned as a (possibly symmetric) COO representation.
-    """
-    # get scipy coo
-    A = nx.to_scipy_sparse_array(G).tocoo()
-    row = torch.tensor(A.row, dtype=torch.long)
-    col = torch.tensor(A.col, dtype=torch.long)
-    data = torch.tensor(A.data, dtype=torch.float32)
-    return row, col, data, A.shape
-
 def update_balanced(balanced, assignment, r):
     """
     Updates the balanced tensor in-place.
@@ -84,16 +71,6 @@ def row_sum_from_coo(row_idx, values, n_rows, dtype=torch.float32):
     row_sums = row_sums.scatter_add(0, row_idx, values)
     return row_sums
 
-def count_neg_entries_in_DX(row_idx, col_idx, cut_data, assignment):
-    """
-    Compute D @ cut_matrix values for each nonzero entry: value2 = assignment[row]*cut_data
-    Count how many of those are equal to -1 (exact equality, same semantics as original).
-    Returns integer count.
-    """
-    v2 = assignment[row_idx].to(cut_data.dtype) * cut_data
-    # equality with -1 (use elementwise comparison)
-    return int((v2 == -1).sum().item())
-
 def create_cut(cut_data, assignment):
     n_cuts_raw = int((cut_data == -1).sum().item())
     n_cuts = n_cuts_raw // 2
@@ -103,31 +80,22 @@ def create_cut(cut_data, assignment):
 
 # --- Algorithm ---------------------------------------------------------------
 
-def initial_partition(n, r, iteration):
-    torch.manual_seed(iteration)
-    perm = torch.arange(n)[torch.randperm(n)]
+def initial_partition(n, r):
+    perm = torch.randperm(n)
     r = min(1 - r, r)
     k = max(1, round(n * r))
-    offset = (iteration * k) % n
-    indices = torch.cat([perm[offset:], perm[:offset]])
-    A_idx = indices[:k]
+    A_idx = perm[:k]
     assignment = torch.ones(n, dtype=torch.int32)
     assignment[A_idx] = -1
     return assignment
 
-
-def partition_pass(G, r, iteration=0):
-    """
-    One pass of the partition improvement heuristic, implemented with PyTorch tensors.
-    Returns tuple (min_cuts, |A|, |B|) found during this pass (same semantics as original).
-    """
+def partition_pass(G, r):
     nodes = list(G.nodes())
     n = len(nodes)
     if n == 0:
         return None
 
     # Mapping from node label -> contiguous index [0..n-1]
-    idx_of_node = {node: i for i, node in enumerate(nodes)}
     # Build adjacency as COO via scipy then to torch
     adj_sp = nx.to_scipy_sparse_array(G).tocoo()
     # Sanity: if adjacency has shape mismatch, handle it
@@ -138,7 +106,7 @@ def partition_pass(G, r, iteration=0):
     adj_data = torch.tensor(adj_sp.data, dtype=torch.float32)
 
     # initial random partition: choose k nodes for A (assignment -1), rest 1
-    assignment = initial_partition(n, r, iteration)
+    assignment = initial_partition(n, r)
 
     moveable = torch.ones(n, dtype=torch.bool)
 
@@ -154,20 +122,8 @@ def partition_pass(G, r, iteration=0):
     cuts.append(create_cut(cut_data, assignment))
 
     while (moveable & balanced).any().item():
-        # Compute gains:
-        # gains = - (cut_matrix).sum(axis=1)
-        num_neg_total = (assignment == -1).sum().item()
-        num_neg = torch.full((n,), num_neg_total, dtype=assignment.dtype)
-        num_neg = num_neg - assignment
-
-        num_pos_total = (assignment == 1).sum().item()
-        num_pos = torch.full((n,), num_pos_total, dtype=assignment.dtype)
-        num_pos = num_pos + assignment
-
-        min_size = torch.minimum(num_neg, num_pos)
-
         row_sums = row_sum_from_coo(cut_row, cut_data, n)
-        gains = - row_sums / min_size
+        gains = - row_sums
 
         # Find candidate indices where moveable & balanced
         candidates = torch.where(moveable & balanced)[0]
@@ -209,7 +165,7 @@ def run_passes(G, r, n_passes):
     min_partition = None
 
     for i in range(n_passes):
-        res = partition_pass(G, r, i)
+        res = partition_pass(G, r)
         if res is None:
             print(f"pass {i}: no improving moves (empty or trivial partition).")
             continue
