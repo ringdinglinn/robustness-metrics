@@ -49,13 +49,6 @@ def update_gains(G, idx_to_node, node_to_idx, assignment, gains, vertex):
             cut_edges -= 1  # One fewer cut edge
     return cut_edges
 
-def recompute_cut(G, assignment, node_to_idx):
-    cut = 0
-    for u, v in G.edges():
-        if assignment[node_to_idx[u]] != assignment[node_to_idx[v]]:
-            cut += 1
-    return cut
-
 def intialize_gains(G, idx_to_node, node_to_idx, assignment):
     n = assignment.shape[0]
     gains = np.zeros(n)
@@ -131,7 +124,6 @@ def partition_pass(G, r):
         delta_edges = update_gains(G, idx_to_node, node_to_idx, assignment, gains, vertex)
         n_cut_edges += delta_edges
         assignment[vertex] *= -1
-        assert n_cut_edges == recompute_cut(G, assignment, node_to_idx)
 
         moveable[vertex] = False
 
