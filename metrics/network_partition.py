@@ -1,82 +1,60 @@
-"""
-cheeger_torch.py
-
-PyTorch-based conversion of your partitioning / Cheeger search script.
-Uses sparse COO-style tensors (row_idx, col_idx, data) stored as 1-D torch tensors
-to avoid densifying large adjacency matrices.
-
-Run:
-    python cheeger_torch.py <edgelist_file>
-
-Outputs a JSON file at ../results/cheeger_2.json (create directory if needed).
-"""
 import math
 import json
 import networkx as nx
 import torch
 import numpy as np
 import time
+import heapq
 
 # --- Utilities ----------------------------------------------------------------
 
 MIN_PART_SIZE = 1
 
-def update_balanced(balanced, assignment, r):
-    """
-    Updates the balanced tensor in-place.
-    - balanced: torch.BoolTensor of shape (n,)
-    - assignment: torch.IntTensor of shape (n,) with values ±1
-    - r: float, target fraction
-    """
+def is_balanced(a, b, is_a, r, n):
     m = 0.05
 
-    n = assignment.numel()
-    num_neg = (assignment == -1).sum().item()
-    num_pos = n - num_neg
-
-    a = num_neg + assignment
-    b = num_pos - assignment
-    s = torch.minimum(a, b)
+    if (is_a):
+        a -= 1
+        b += 1
+    else:
+        a += 1
+        b -= 1
+    s = min(a, b)
 
     max_m = round(n * m)
     s_r = round(min(n * r, n * (1 - r)))
 
-    # in-place update
-    balance_ok = (torch.abs(s_r - s) <= max_m)
+    balance_ok = (abs(s_r - s) <= max_m)
     non_empty_ok = (a > 0) & (b > 0)
 
-    # in-place update
-    balanced.copy_(balance_ok & non_empty_ok)
+    return balance_ok & non_empty_ok
 
-# --- Sparse helpers -----------------------------------------------------------
+def update_gains(G, assignment, gains, vertex):
+    gains[vertex] = 0
+    for neighbor in G.neighbors(vertex):
+        if (assignment[vertex] != assignment[neighbor]):
+            gains[neighbor] += 1
+            gains[vertex] += 1
+        else:
+            gains[neighbor] -= 1
+            gains[vertex] += 1
 
-def compute_cut_data_from_adj(adj_row, adj_col, adj_data, assignment):
-    """
-    Given adjacency in COO (adj_row, adj_col, adj_data) and assignment (tensor of ±1),
-    compute cut_matrix = adj @ diag(assignment) in COO-value form.
-    For each nonzero (i,j) of adj, cut_value = adj_value * assignment[j].
-    Returns cut_row, cut_col, cut_data (same indices as adjacency with new values).
-    (We simply reuse adj_row/adj_col and modify data.)
-    """
-    # assignment is 1-D tensor (n,), and adj_col indexes into it
-    cut_data = adj_data * assignment[adj_row] * assignment[adj_col].to(adj_data.dtype)
-    return adj_row, adj_col, cut_data
+def intialize_gains(G, assignment):
+    n = assignment.shape[0]
+    gains = np.zeros(n)
+    n_cut_edges = 0
+    for i in range(n):
+        for neighbor in G.neighbors(i):
+            if assignment[neighbor] != assignment[i]:
+                gains[i] += 1
+                n_cut_edges += 1
+            else:
+                gains[i] -= 1
 
-def row_sum_from_coo(row_idx, values, n_rows, dtype=torch.float32):
-    """
-    Given COO (row_idx, values), compute row-wise sum vector of length n_rows.
-    Uses scatter_add.
-    """
-    row_sums = torch.zeros(n_rows, dtype=values.dtype)
-    row_sums = row_sums.scatter_add(0, row_idx, values)
-    return row_sums
+    n_cut_edges //= 2
+    order = np.argsort(-gains)
+    return gains, order, n_cut_edges
 
-def create_cut(cut_data, assignment):
-    n_cuts_raw = int((cut_data == -1).sum().item())
-    n_cuts = n_cuts_raw // 2
-
-    a, b = int((assignment == -1).sum().item()), int((assignment == 1).sum().item())
-    return (n_cuts, a, b)
 
 # --- Algorithm ---------------------------------------------------------------
 
@@ -85,9 +63,9 @@ def initial_partition(n, r):
     r = min(1 - r, r)
     k = max(1, round(n * r))
     A_idx = perm[:k]
-    assignment = torch.ones(n, dtype=torch.int32)
+    assignment = np.ones(n)
     assignment[A_idx] = -1
-    return assignment
+    return assignment, k, n - k
 
 def partition_pass(G, r):
     nodes = list(G.nodes())
@@ -95,64 +73,42 @@ def partition_pass(G, r):
     if n == 0:
         return None
 
-    # Mapping from node label -> contiguous index [0..n-1]
-    # Build adjacency as COO via scipy then to torch
-    adj_sp = nx.to_scipy_sparse_array(G).tocoo()
-    # Sanity: if adjacency has shape mismatch, handle it
-    assert adj_sp.shape[0] == n and adj_sp.shape[1] == n, "Adjacency shape mismatch with node list"
+    assignment, size_a, size_b = initial_partition(n, r)
 
-    adj_row = torch.tensor(adj_sp.row, dtype=torch.long)
-    adj_col = torch.tensor(adj_sp.col, dtype=torch.long)
-    adj_data = torch.tensor(adj_sp.data, dtype=torch.float32)
+    moveable = np.ones(n, dtype=bool)
 
-    # initial random partition: choose k nodes for A (assignment -1), rest 1
-    assignment = initial_partition(n, r)
+    gains, order, n_cut_edges = intialize_gains(G, assignment)  
 
-    moveable = torch.ones(n, dtype=torch.bool)
+    while (moveable).any().item():
+        idx = 0
+        vertex = order[idx]
 
-    # Compute cut_matrix = adj @ diag(assignment) in COO form
-    cut_row, cut_col, cut_data = compute_cut_data_from_adj(adj_row, adj_col, adj_data, assignment)
+        while idx < len(gains) :
+            vertex = order[idx]
+            if ((not is_balanced(size_a, size_b, assignment[vertex]==-1, r, n) or not moveable[vertex])):
+                idx += 1
+            else:
+                break
 
-    # balanced per vertex
-    balanced = torch.ones(n, dtype=torch.bool)
-    update_balanced(balanced, assignment, r)
+        gain = gains[vertex]
 
-    cuts = []
-    
-    cuts.append(create_cut(cut_data, assignment))
+        # update stuff
 
-    while (moveable & balanced).any().item():
-        row_sums = row_sum_from_coo(cut_row, cut_data, n)
-        gains = - row_sums
+        if assignment[vertex] == -1:
+            size_a -= 1
+            size_b += 1
+        else:
+            size_a += 1
+            size_b -= 1
 
-        # Find candidate indices where moveable & balanced
-        candidates = torch.where(moveable & balanced)[0]
-        if candidates.numel() == 0:
-            break
+        assignment[vertex] *= -1
+        n_cut_edges += gain
+        moveable[vertex] = False
 
-        candidate_vals = gains[candidates]
-        # choose the candidate with maximum gain (ties broken arbitrarily)
-        max_idx = torch.argmax(candidate_vals)
-        max_vertex = int(candidates[max_idx].item())
+        update_gains(G, assignment, gains, vertex)
+        order = np.argsort(-gains)
 
-        # flip assignment for that vertex
-        assignment[max_vertex] *= -1
-
-        # Update cut_data: because cut_data = adj_value * assignment[col]
-        # flipping assignment[v] toggles sign of all entries with col == v
-        affected = (cut_col == max_vertex) | (cut_row == max_vertex)
-        if affected.any().item():
-            cut_data[affected] *= -1        
-
-        # Update balanced after flip
-        update_balanced(balanced, assignment, r)
-
-        cuts.append(create_cut(cut_data, assignment))
-
-        # mark vertex as non-moveable
-        moveable[max_vertex] = False
-
-    return min(cuts, key=lambda x: x[0]) if cuts else None
+    return n_cut_edges, np.sum(assignment==-1), np.sum(assignment==1)
 
 # --- Top-level helpers -------------------------------------------------------
 

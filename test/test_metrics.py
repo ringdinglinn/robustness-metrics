@@ -2,7 +2,7 @@ from metrics import border_breadth, metrics_basic, metrics_complex, sparsity, sp
 import networkx as nx
 
 def main():
-    G = nx.maybe_regular_expander_graph(10, 4)
+    G = nx.read_edgelist('test/test_graph.txt')
 
     results = {}
     results.update(metrics_basic.compute(G))
