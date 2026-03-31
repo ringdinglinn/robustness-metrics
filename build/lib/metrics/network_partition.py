@@ -102,6 +102,7 @@ def partition_pass(G, r):
 
     gains, order, n_cut_edges = intialize_gains(G, idx_to_node, node_to_idx, assignment) 
 
+    min_cheeger = np.inf
     min_cut_edges = np.inf
     best_assignemnt = assignment.copy() 
 
