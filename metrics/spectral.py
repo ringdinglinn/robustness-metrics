@@ -11,7 +11,7 @@ def spectral_radius(e):
 def compute(G):
     metrics = {}
     n = len(G.nodes())
-    k = min(n-1, 3)
+    k = min(n-1, 10)
     A = sparse.coo_matrix(nx.adjacency_matrix(G))
     e_vals, e_vecs = sparse.linalg.eigsh(A, k=k, which='LA', tol=1e-10)
     pairs = list(zip(e_vals, e_vecs.T))
