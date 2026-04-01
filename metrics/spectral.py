@@ -1,5 +1,6 @@
 import networkx as nx
-
+import numpy as np
+from scipy import sparse
 
 def spectral_gap(e):
     return e[0] - e[1]
@@ -9,12 +10,20 @@ def spectral_radius(e):
 
 def compute(G):
     metrics = {}
+    A = sparse.coo_matrix(nx.adjacency_matrix(G))
+    e_vals, e_vecs = sparse.linalg.eigsh(A, k=2, which='LA')
+    pairs = list(zip(e_vals, e_vecs.T))
+    pairs.sort(key=lambda x: x[0], reverse=True)
+    e_vals = np.array([p[0] for p in pairs])
+    e_vecs = np.column_stack([p[1] for p in pairs])
+    print(e_vals)
+    metrics["spectral_gap"] = spectral_gap(e_vals)
+    metrics["spectral_radius"] = spectral_radius(e_vals)
 
-    adj_spectrum = nx.adjacency_spectrum(G)
+    L = sparse.coo_matrix(nx.laplacian_matrix(G))
+    e_, _ = sparse.linalg.eigsh(L, k=2, which='SM')
+    e_ = np.sort(e_)
 
-    metrics["spectral_radius"] = adj_spectrum[0]
-    metrics["spectral_gap"] = adj_spectrum[0] - adj_spectrum[1]
-    
-    metrics["algebraic_connectivity"] = nx.algebraic_connectivity(G)
+    metrics["algebraic_connectivity"] = e_[1]
 
     return metrics
