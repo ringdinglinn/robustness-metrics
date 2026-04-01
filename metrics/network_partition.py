@@ -95,7 +95,7 @@ def partition_pass(G, r):
 
     gains, order, n_cut_edges = intialize_gains(G, idx_to_node, node_to_idx, assignment) 
 
-    min_cut_edges = np.inf
+    min_cut_edges = n_cut_edges
     best_assignemnt = assignment.copy() 
 
     while (moveable).any().item():
