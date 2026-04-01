@@ -11,7 +11,7 @@ def spectral_radius(e):
 def compute(G):
     metrics = {}
     n = len(G.nodes())
-    k = min(n-1, 10)
+    k = min(n-1, 3)
     A = sparse.coo_matrix(nx.adjacency_matrix(G))
     e_vals, e_vecs = sparse.linalg.eigsh(A, k=k, which='LA', tol=1e-10)
     pairs = list(zip(e_vals, e_vecs.T))
@@ -23,7 +23,7 @@ def compute(G):
     metrics["spectral_radius"] = spectral_radius(e_vals)
 
     L = sparse.coo_matrix(nx.laplacian_matrix(G))
-    e_, _ = sparse.linalg.eigsh(L, k=k, which='SM', tol=1e-10)
+    e_, _ = sparse.linalg.eigsh(L, k=k, which='SA', tol=1e-10)
     e_ = np.sort(e_)
 
     metrics["algebraic_connectivity"] = e_[1]
