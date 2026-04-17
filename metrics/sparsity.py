@@ -1,6 +1,5 @@
 """sparsity"""
 
-import networkx as nx
 import itertools
 from math import floor
 from math import inf
